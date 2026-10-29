@@ -22,6 +22,8 @@ body {
   -webkit-user-select: none;
   touch-action: manipulation;
 }
+/* No double-tap zoom or tap delay anywhere in the game, so no tap gets swallowed. */
+.app, .app * { touch-action: manipulation; -webkit-touch-callout: none; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 
 .app {
