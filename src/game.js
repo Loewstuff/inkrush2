@@ -28,12 +28,22 @@ export function initGame(seed = 'PLANET') {
   };
 }
 
+// What gets saved so a refresh or app switch can pick the round back up (transient animation state is dropped).
+export const snapshot = (s) => ({ board: s.board, pending: s.pending, cursor: s.cursor, dir: s.dir, score: s.score, longest: s.longest });
+
+// Rebuild a game from a snapshot; null if it doesn't look right, so the caller starts fresh.
+export function restoreGame(seed, saved) {
+  const ok = Array.isArray(saved?.board) && saved.board.length === SIZE && saved.board.every((row) => Array.isArray(row) && row.length === SIZE);
+  if (!ok || !Array.isArray(saved.pending) || !saved.cursor) return null;
+  return { ...initGame(seed), ...snapshot(saved), resumed: true };
+}
+
 // Every input goes through here, so each key press builds on the state left by the one before it.
 export function gameReducer(s, a) {
   const canInput = s.active && !s.shaking;
   switch (a.type) {
     case 'start':
-      return { ...initGame(a.seed), active: true };
+      return s.resumed ? { ...s, active: true, resumed: false } : { ...initGame(a.seed), active: true };
     case 'end':
       return { ...s, active: false, pending: [], shaking: false };
     case 'letter': {

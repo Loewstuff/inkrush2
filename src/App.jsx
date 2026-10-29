@@ -1,15 +1,16 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ROUND_SECONDS } from './rules.js';
-import { gameReducer, initGame } from './game.js';
+import { gameReducer, initGame, restoreGame, snapshot } from './game.js';
 import { beep, buzzer, unlockAudio } from './sound.js';
 import { serverNow } from './firebase.js';
-import { LEAD_MS, MAX_PLAYERS, MIN_PLAYERS, cleanCode, createRoom, joinRoom, leaveRoom, playerId, reportScore, startRound, watchRoom } from './room.js';
+import { LEAD_MS, MAX_PLAYERS, MIN_PLAYERS, claimHost, cleanCode, createRoom, isAway, joinRoom, leaveRoom, nextHost, playerId, rematch, reportScore, startRound, trackPresence, watchRoom } from './room.js';
 import { decodeBoard, encodeBoard, rankPlayers } from './results.js';
 
 const RED_AT = 10;
 const BEEPS_FROM = 5;
 const MUTE_KEY = 'inkrush2.muted';
 const NAME_KEY = 'inkrush2.name';
+const GAME_KEY = 'inkrush2.game'; // the round in progress, so a refresh or app switch can pick it back up
 const KEY_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
 const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -29,6 +30,16 @@ const save = (key, value) => {
     // Storage blocked (private mode): the setting just won't persist.
   }
 };
+
+// Only a save from this exact room, round and player counts; anything else starts fresh.
+function loadSavedGame(code, n, pid, seed) {
+  try {
+    const saved = JSON.parse(load(GAME_KEY));
+    return saved?.code === code && saved.n === n && saved.pid === pid ? restoreGame(seed, saved) : null;
+  } catch {
+    return null;
+  }
+}
 
 // Keep ?room=ABCD in the address bar so a refresh or a copied link lands in the same room.
 const setUrlRoom = (code) => {
@@ -100,11 +111,11 @@ function Header({ timer, code, muted, onMute }) {
   );
 }
 
-function PlayerCard({ name, score, me }) {
+function PlayerCard({ name, score, me, away }) {
   return (
-    <div className={`card keycap${me ? ' me' : ''}`}>
+    <div className={`card keycap${me ? ' me' : ''}${away ? ' away' : ''}`}>
       <span className="avatar">{initial(name)}</span>
-      <span className="name">{name}</span>
+      <span className="name">{away ? 'away' : name}</span>
       {score !== undefined && <span className="score">{score}</span>}
     </div>
   );
@@ -163,12 +174,12 @@ function Home({ urlCode, busy, error, onCreate, onJoin }) {
   );
 }
 
-function Lobby({ code, room, pid, onStart, onLeave }) {
+function Lobby({ code, room, pid, away, onStart, onLeave }) {
   const [note, setNote] = useState('');
   const ids = joinOrder(room, Object.keys(room.players || {}));
   const isHost = room.host === pid;
   const hostName = room.players?.[room.host]?.name || 'the host';
-  const enough = ids.length >= MIN_PLAYERS;
+  const enough = ids.filter((id) => !away.has(id)).length >= MIN_PLAYERS;
 
   const share = async () => {
     const url = `${window.location.origin}/?room=${code}`;
@@ -193,7 +204,7 @@ function Lobby({ code, room, pid, onStart, onLeave }) {
       <p className="label">Players {ids.length}/{MAX_PLAYERS}</p>
       <div className="ticker">
         {ids.map((id) => (
-          <PlayerCard key={id} name={room.players[id].name} me={id === pid} />
+          <PlayerCard key={id} name={room.players[id].name} me={id === pid} away={away.has(id)} />
         ))}
       </div>
       {isHost ? (
@@ -227,7 +238,7 @@ function MiniBoard({ text, seed }) {
   );
 }
 
-function Results({ room, pid, onLeave }) {
+function Results({ room, pid, away, onRematch, onLeave }) {
   const { round } = room;
   const scores = room.scores?.[round.n] || {};
   const ranked = rankPlayers(
@@ -237,6 +248,7 @@ function Results({ room, pid, onLeave }) {
       score: scores[id]?.score || 0,
       longest: scores[id]?.longest || '',
       board: scores[id]?.board,
+      away: away.has(id),
     })),
   );
   const top = ranked[0];
@@ -257,7 +269,7 @@ function Results({ room, pid, onLeave }) {
             >
               <span className="place">{wins(p) ? '★' : i + 1}</span>
               <span className="avatar">{initial(p.name)}</span>
-              <span className="name">{p.name}</span>
+              <span className="name">{p.name}{p.away && <em className="away-tag"> away</em>}</span>
               <span className="longest">{p.longest}</span>
               <span className="score">{p.score}</span>
             </button>
@@ -275,23 +287,28 @@ function Results({ room, pid, onLeave }) {
       <div className="dots" aria-hidden="true">
         {ranked.map((p, i) => <span key={p.id} className={slide === i ? 'on' : ''} />)}
       </div>
+      {room.host === pid ? (
+        <button type="button" className="keycap go wide" onClick={onRematch}>Rematch</button>
+      ) : (
+        <p className="sub">Waiting for {room.players?.[room.host]?.name || 'the host'} to start a rematch…</p>
+      )}
       <button type="button" className="link" onClick={onLeave}>Leave room</button>
     </div>
   );
 }
 
-function Play({ code, room, pid, dict, muted, onMute, onLeave }) {
+function Play({ code, room, pid, away, dict, muted, onMute, onRematch, onLeave }) {
   const { round } = room;
   const startAt = round.startedAt + LEAD_MS;
   const endAt = startAt + ROUND_SECONDS * 1000;
   const clockAt = useCallback((now) => (now < startAt ? 'countdown' : now < endAt ? 'playing' : 'over'), [startAt, endAt]);
 
-  const [game, dispatch] = useReducer(gameReducer, round.seed, initGame);
+  const [game, dispatch] = useReducer(gameReducer, null, () => loadSavedGame(code, round.n, pid, round.seed) || initGame(round.seed));
   const { board, pending, cursor, dir, score, longest, status, shaking, popped } = game;
   const [clock, setClock] = useState(() => clockAt(serverNow()));
   const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS);
   const [getReady, setGetReady] = useState(3);
-  const played = useRef(false);
+  const played = useRef(!!game.resumed); // true from the start if we're picking a round back up
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
   const leftBar = useRef(null);
@@ -336,6 +353,11 @@ function Play({ code, room, pid, dict, muted, onMute, onLeave }) {
     if (clock === 'over') entry.board = encodeBoard(board);
     reportScore(code, round.n, pid, entry).catch(() => {});
   }, [clock, score]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save progress as it changes, so a refresh or app switch comes back to the same board, score and pending letters.
+  useEffect(() => {
+    if (played.current) save(GAME_KEY, JSON.stringify({ code, n: round.n, pid, ...snapshot(game) }));
+  }, [board, pending, cursor, dir, score, longest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The bar is drawn every frame straight from the end time, outside React, so it tracks the clock exactly.
   useEffect(() => {
@@ -409,7 +431,7 @@ function Play({ code, room, pid, dict, muted, onMute, onLeave }) {
       </div>
 
       {clock === 'over' ? (
-        <Results room={room} pid={pid} onLeave={onLeave} />
+        <Results room={room} pid={pid} away={away} onRematch={onRematch} onLeave={onLeave} />
       ) : (
         <>
           <div className="ticker">
@@ -419,6 +441,7 @@ function Play({ code, room, pid, dict, muted, onMute, onLeave }) {
                 name={room.players?.[id]?.name || scores[id]?.name || 'Player'}
                 score={id === pid ? score : scores[id]?.score || 0}
                 me={id === pid}
+                away={away.has(id)}
               />
             ))}
           </div>
@@ -496,6 +519,27 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [muted, setMuted] = useState(() => load(MUTE_KEY) === '1');
+  const [, setTick] = useState(0);
+  const inRoom = !!room?.players?.[pid];
+
+  // Re-check who's gone quiet every couple of seconds.
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  // While we're in a room, keep telling the others we're here.
+  useEffect(() => {
+    if (!code || !inRoom) return undefined;
+    return trackPresence(code, pid);
+  }, [code, pid, inRoom]);
+
+  // If the host is gone, the next player still here takes over. Only that one phone makes the move.
+  useEffect(() => {
+    if (!inRoom || !room.host || room.host === pid) return;
+    const gone = !room.players[room.host] || isAway(room, room.host);
+    if (gone && nextHost(room, room.host) === pid) claimHost(code, room.host, pid).catch(() => {});
+  });
 
   useEffect(() => {
     fetch('/enable.txt')
@@ -557,8 +601,12 @@ export default function App() {
   };
 
   const onLeave = () => {
-    // Leaving the lobby frees your seat; leaving after a round keeps your score on the board.
-    if (room && !room.round) leaveRoom(code, pid).catch(() => {});
+    // Leaving the lobby (or sitting out a round) frees your seat; leaving after playing keeps your score on the board.
+    // If you're host, the next player here takes over right away.
+    if (inRoom) {
+      const next = room.host === pid ? nextHost(room, pid) : undefined;
+      leaveRoom(code, pid, { next, freeSeat: !room.round?.players?.[pid] }).catch(() => {});
+    }
     goHome();
   };
 
@@ -588,16 +636,17 @@ export default function App() {
   }
 
   const { round } = room;
-  if (!round) return shell(<Lobby code={code} room={room} pid={pid} onStart={() => startRound(code, room)} onLeave={onLeave} />);
+  const away = new Set(Object.keys(room.players).filter((id) => id !== pid && isAway(room, id)));
+  if (!round) return shell(<Lobby code={code} room={room} pid={pid} away={away} onStart={() => startRound(code, room)} onLeave={onLeave} />);
   if (round.players?.[pid]) {
-    return <Play key={round.n} code={code} room={room} pid={pid} dict={dict} muted={muted} onMute={toggleMute} onLeave={onLeave} />;
+    return <Play key={round.n} code={code} room={room} pid={pid} away={away} dict={dict} muted={muted} onMute={toggleMute} onRematch={() => rematch(code, room).catch(() => {})} onLeave={onLeave} />;
   }
   // Joined mid-round: they sit this one out and play the next.
   return shell(
     <div className="screen">
       <p className="big">A round is in progress.</p>
       <p className="sub">You'll play in the next round.</p>
-      <button type="button" className="link" onClick={goHome}>Leave room</button>
+      <button type="button" className="link" onClick={onLeave}>Leave room</button>
     </div>,
   );
 }

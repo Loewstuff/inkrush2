@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gameReducer, initGame } from './game.js';
+import { gameReducer, initGame, restoreGame, snapshot } from './game.js';
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -21,4 +21,22 @@ test('10 key presses 20ms apart all land in order', async () => {
   assert.deepEqual(state.pending.map((t) => t.ch), letters);
   assert.deepEqual(state.pending.map((t) => t.c), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   assert.ok(state.pending.every((t) => t.r === 0));
+});
+
+test('a saved round comes back with its board, score and typed letters, and resumes without resetting', () => {
+  let g = gameReducer(initGame('PLANET'), { type: 'start', seed: 'PLANET' });
+  g = gameReducer(g, { type: 'letter', ch: 'X' });
+  g = { ...g, score: 4, longest: 'PLANETS' };
+  const saved = JSON.parse(JSON.stringify(snapshot(g)));
+  let back = restoreGame('PLANET', saved);
+  assert.equal(back.score, 4);
+  assert.equal(back.pending.length, 1);
+  back = gameReducer(back, { type: 'start', seed: 'PLANET' });
+  assert.equal(back.active, true);
+  assert.equal(back.score, 4);
+});
+
+test('a damaged save is ignored', () => {
+  assert.equal(restoreGame('PLANET', { board: 'nope' }), null);
+  assert.equal(restoreGame('PLANET', null), null);
 });
