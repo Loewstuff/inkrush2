@@ -194,3 +194,89 @@ button.keycap:active {
 @media (prefers-reduced-motion: reduce) {
   .tile.pop, .tile.shake { animation: none; }
 }
+
+/* With 5-8 players the ticker takes a second row, so the board gives up that height. */
+.app.two-rows { --board: min(calc(100vw - 24px), calc(100dvh - 448px), 480px); }
+
+button:disabled { opacity: 0.45; cursor: default; }
+
+/* Home, lobby and waiting screens */
+.screen {
+  flex: 1;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; text-align: center;
+}
+.hero { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 12px; }
+.big-logo { width: 56px; height: 56px; font-size: 32px; border-radius: 14px; }
+.hero h1 { font-size: 28px; font-weight: 600; }
+.screen .big { font-weight: 600; font-size: 18px; }
+.sub { color: var(--text-2); font-size: 14px; min-height: 1.2em; }
+.label { color: var(--text-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.error { color: #c42a1f; font-size: 14px; font-weight: 500; min-height: 1.2em; }
+.field { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.input {
+  width: 100%; height: 48px; padding: 0 14px;
+  border: 0; border-radius: 10px;
+  background: #fff; color: var(--text);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
+  font: 500 17px 'IBM Plex Sans', sans-serif; /* 16px+ so iPhones don't zoom in */
+  user-select: text; -webkit-user-select: text;
+}
+.input:focus { outline: 2px solid var(--orange); outline-offset: -2px; }
+.go.wide { width: 100%; max-width: 320px; }
+.join-row { width: 100%; max-width: 320px; display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.code-input { font: 600 20px 'IBM Plex Mono', monospace; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; }
+.plain { background: #fff; height: 48px; padding: 0 20px; font-weight: 600; font-size: 15px; }
+.link { color: var(--text-2); font-size: 14px; text-decoration: underline; padding: 10px; }
+.bigcode {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: inset 0 -4px 0 var(--edge);
+  padding: 10px 24px 14px;
+  font: 700 48px/1 'IBM Plex Mono', monospace;
+  letter-spacing: 0.15em;
+}
+
+/* Results: ranked list, then a swipeable strip with every player's final board. */
+.results {
+  --mini: min(calc(100vw - 24px), calc(100dvh - 200px - var(--rows) * 40px), 456px);
+  flex: 1; min-height: 0; width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ranks { list-style: none; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.rank {
+  width: 100%; height: 36px; padding: 0 10px 3px;
+  background: #fff;
+  display: grid; grid-template-columns: 18px 20px 1fr auto 36px; align-items: center; gap: 8px;
+  text-align: left;
+}
+.rank .avatar, .rank .name, .rank .score { grid-area: auto; }
+.rank .place { font: 600 14px 'IBM Plex Mono', monospace; color: var(--text-2); text-align: center; }
+.rank .name { font-size: 14px; color: var(--text); }
+.rank .longest { font: 500 12px 'IBM Plex Mono', monospace; color: var(--text-2); letter-spacing: 0.05em; }
+.rank .score { justify-self: end; font: 600 18px/1 'IBM Plex Mono', monospace; }
+.rank.win { background: var(--orange); }
+.rank.win .place, .rank.win .longest { color: var(--text); }
+.rank.me .avatar { background: var(--orange); }
+.rank.win.me .avatar { background: #fff; }
+.rank.viewing { outline: 2px solid var(--graphite); outline-offset: -2px; }
+.strip {
+  width: 100%;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.strip::-webkit-scrollbar { display: none; }
+.app .strip, .app .strip * { touch-action: pan-x; }
+.slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.slide-name { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.tray.mini { --board: var(--mini); padding: 4px; }
+.tray.mini .grid { gap: 1px; }
+.tray.mini .tile { box-shadow: inset 0 -2px 0 var(--edge); }
+.tray.mini .tile.seed { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.45); }
+.dots { display: flex; gap: 6px; }
+.dots span { width: 6px; height: 6px; border-radius: 50%; background: #c5cad2; }
+.dots span.on { background: var(--graphite); }

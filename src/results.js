@@ -1,0 +1,26 @@
+import { SIZE, boardWithSeed } from './rules.js';
+
+// A board travels as one 121-character string: a letter per filled cell, '.' for empty.
+export function encodeBoard(board) {
+  return board.map((row) => row.map((cell) => (cell ? cell.ch : '.')).join('')).join('');
+}
+
+// Rebuild a board from its string. Cells that match the seed word stay seed tiles; the rest were placed.
+export function decodeBoard(text, seed) {
+  const board = boardWithSeed(seed);
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const ch = text[r * SIZE + c];
+      if (ch && ch !== '.' && !board[r][c]) board[r][c] = { ch, kind: 'mine' };
+    }
+  }
+  return board;
+}
+
+// Most tiles first; ties go to the longer single word, then alphabetically so everyone sees the same order.
+export function rankPlayers(entries) {
+  return [...entries].sort(
+    (a, b) =>
+      b.score - a.score || (b.longest || '').length - (a.longest || '').length || a.name.localeCompare(b.name),
+  );
+}
