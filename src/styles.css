@@ -64,8 +64,14 @@ button.keycap:active {
 }
 .title { font-weight: 600; font-size: 15px; }
 .timer { font: 600 34px/1 'IBM Plex Mono', monospace; letter-spacing: -0.02em; }
+.header-right { justify-self: end; display: flex; align-items: center; gap: 6px; }
+.mute {
+  width: 30px; height: 28px;
+  display: grid; place-items: center;
+  background: #fff;
+  color: var(--text-2);
+}
 .room {
-  justify-self: end;
   background: #fff;
   padding: 5px 10px;
   font: 600 13px 'IBM Plex Mono', monospace;
@@ -73,9 +79,12 @@ button.keycap:active {
   color: var(--text-2);
 }
 
-.countdown { width: 100%; display: flex; gap: 3px; }
-.seg { flex: 1; height: 6px; border-radius: 3px; background: #cfd3da; transition: background 0.2s; }
-.seg.on { background: var(--graphite); }
+.countdown { width: 100%; height: 6px; border-radius: 3px; background: #d2d6dd; display: flex; overflow: hidden; }
+/* Each half fills from its outer edge; they meet in the center at 0:00. */
+.countdown .half { flex: 1; background: var(--graphite); transform: scaleX(0); will-change: transform; }
+.countdown .left { transform-origin: left center; }
+.countdown .right { transform-origin: right center; }
+.countdown.urgent .half { background: #e5372b; }
 
 .ticker { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .card {
