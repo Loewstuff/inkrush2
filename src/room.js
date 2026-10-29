@@ -13,56 +13,54 @@ const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O: they look like 1 
 
 const roomRef = (code, path = '') => ref(db, `rooms/${code}${path}`);
 
-// One random id per phone, kept across refreshes so a reload is the same player.
-export function playerId() {
-  try {
-    let id = localStorage.getItem('inkrush2.pid');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('inkrush2.pid', id);
-    }
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
-
 export const cleanCode = (s) => (s || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
 
 export async function createRoom(pid, name) {
   for (let tries = 0; tries < 10; tries++) {
     const code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)]).join('');
-    // Claim the code only if nobody has it.
-    const { committed } = await runTransaction(roomRef(code), (cur) =>
-      cur ? undefined : { host: pid, created: serverTimestamp(), players: { [pid]: { name, joined: serverTimestamp() } } },
-    );
-    if (committed) return code;
+    if ((await get(roomRef(code, '/host'))).exists()) continue;
+    try {
+      // The database only lets this through if nobody has the code yet.
+      await set(roomRef(code), {
+        host: pid,
+        created: serverTimestamp(),
+        seats: { 0: pid },
+        players: { [pid]: { name, joined: serverTimestamp() } },
+      });
+      return code;
+    } catch {
+      // Someone grabbed the code a moment ago: try another.
+    }
   }
   throw new Error('Could not make a room code. Try again.');
 }
 
 // Resolves to null on success, or a message saying why not.
+// The database lets anyone check a room exists, but only members read it, so we try for a seat (0-7) and it says no when they're all taken.
 export async function joinRoom(code, pid, name) {
-  const snap = await get(roomRef(code));
-  if (!snap.exists()) return `No room called ${code}`;
-  let full = false;
-  await runTransaction(roomRef(code, '/players'), (players) => {
-    const list = players || {};
-    if (list[pid]) return { ...list, [pid]: { ...list[pid], name } };
-    if (Object.keys(list).length >= MAX_PLAYERS) {
-      full = true;
-      return undefined;
+  if (!(await get(roomRef(code, '/host'))).exists()) return `No room called ${code}`;
+  if ((await get(roomRef(code, `/players/${pid}`))).exists()) {
+    await update(roomRef(code, `/players/${pid}`), { name }); // already in: just refresh the name
+    return null;
+  }
+  for (let seat = 0; seat < MAX_PLAYERS; seat++) {
+    try {
+      await update(roomRef(code), { [`seats/${seat}`]: pid, [`players/${pid}`]: { name, joined: serverTimestamp() } });
+      return null;
+    } catch {
+      // That seat is taken (or the room is closed to us): try the next one.
     }
-    full = false;
-    return { ...list, [pid]: { name, joined: serverTimestamp() } };
-  });
-  return full ? `Room ${code} is full (${MAX_PLAYERS} players)` : null;
+  }
+  return `Room ${code} is full (${MAX_PLAYERS} players)`;
 }
 
 // `next` is who takes over if the leaver was host. In the lobby the leaver's seat is freed; after a round they stay on the board.
-export function leaveRoom(code, pid, { next, freeSeat }) {
+export function leaveRoom(code, pid, { next, freeSeat, seats }) {
   const changes = { [`presence/${pid}`]: 0 };
-  if (freeSeat) changes[`players/${pid}`] = null;
+  if (freeSeat) {
+    changes[`players/${pid}`] = null;
+    for (const [seat, id] of Object.entries(seats || {})) if (id === pid) changes[`seats/${seat}`] = null;
+  }
   if (next) changes.host = next;
   return update(roomRef(code), changes);
 }
@@ -104,7 +102,8 @@ export function nextHost(room, not) {
 export const claimHost = (code, gone, me) =>
   runTransaction(roomRef(code, '/host'), (host) => (host === gone ? me : undefined));
 
-export const watchRoom = (code, cb) => onValue(roomRef(code), (snap) => cb(snap.val()));
+// If the database stops letting us read the room (we're no longer a member), that looks the same as the room being gone.
+export const watchRoom = (code, cb) => onValue(roomRef(code), (snap) => cb(snap.val()), () => cb(null));
 
 // Everyone in the lobby who's still here plays; anyone who joins later waits for the next round.
 export function startRound(code, room) {

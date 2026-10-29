@@ -1,0 +1,100 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null && data.child('players').child(auth.uid).exists()",
+        ".write": "auth != null && !data.exists() && newData.child('host').val() === auth.uid && newData.child('seats').child('0').val() === auth.uid",
+        ".validate": "$code.matches(/^[A-Z]{4}$/) && newData.hasChildren(['host', 'created'])",
+        "host": {
+          ".read": "auth != null",
+          ".write": "auth != null && ((data.val() === auth.uid && root.child('rooms').child($code).child('players').child(newData.val()).exists()) || (newData.val() === auth.uid && root.child('rooms').child($code).child('players').child(auth.uid).exists() && (!root.child('rooms').child($code).child('players').child(data.val()).exists() || now - root.child('rooms').child($code).child('presence').child(data.val()).val() > 14000)))",
+          ".validate": "newData.isString() && newData.parent().child('players').child(newData.val()).exists()"
+        },
+        "created": {
+          ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() === now)"
+        },
+        "players": {
+          "$pid": {
+            ".read": "auth != null && auth.uid === $pid",
+            ".write": "auth != null && auth.uid === $pid && root.child('rooms').child($code).child('host').exists()",
+            ".validate": "newData.hasChildren(['name', 'joined']) && $pid === auth.uid && (data.exists() || newData.parent().parent().child('seats').child('0').val() === auth.uid || newData.parent().parent().child('seats').child('1').val() === auth.uid || newData.parent().parent().child('seats').child('2').val() === auth.uid || newData.parent().parent().child('seats').child('3').val() === auth.uid || newData.parent().parent().child('seats').child('4').val() === auth.uid || newData.parent().parent().child('seats').child('5').val() === auth.uid || newData.parent().parent().child('seats').child('6').val() === auth.uid || newData.parent().parent().child('seats').child('7').val() === auth.uid)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12"
+            },
+            "joined": {
+              ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() === now)"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "presence": {
+          "$pid": {
+            ".write": "auth != null && auth.uid === $pid && root.child('rooms').child($code).child('players').child($pid).exists()",
+            ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === now)"
+          }
+        },
+        "round": {
+          ".write": "auth != null && root.child('rooms').child($code).child('host').val() === auth.uid && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && now >= data.child('startedAt').val() + 91000))",
+          ".validate": "newData.hasChildren(['n', 'seed', 'startedAt', 'players'])",
+          "n": {
+            ".validate": "newData.val() === (root.child('rooms').child($code).child('lastN').exists() ? root.child('rooms').child($code).child('lastN').val() : 0) + 1"
+          },
+          "seed": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Z]{5,7}$/)"
+          },
+          "startedAt": {
+            ".validate": "newData.val() === now"
+          },
+          "players": {
+            "$pid": {
+              ".validate": "newData.val() === true && root.child('rooms').child($code).child('players').child($pid).exists()"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "lastN": {
+          ".write": "auth != null && root.child('rooms').child($code).child('host').val() === auth.uid && root.child('rooms').child($code).child('round').exists() && newData.val() === root.child('rooms').child($code).child('round').child('n').val()",
+          ".validate": "newData.isNumber()"
+        },
+        "scores": {
+          "$n": {
+            "$pid": {
+              ".write": "auth != null && auth.uid === $pid && root.child('rooms').child($code).child('round').child('n').val() + '' === $n && root.child('rooms').child($code).child('round').child('players').child($pid).val() === true && now >= root.child('rooms').child($code).child('round').child('startedAt').val() + 1500 && now <= root.child('rooms').child($code).child('round').child('startedAt').val() + 153000",
+              ".validate": "newData.hasChildren(['name', 'score', 'longest']) && (!data.exists() || newData.child('score').val() >= data.child('score').val())",
+              "name": {
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12"
+              },
+              "score": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 121 && newData.val() % 1 === 0"
+              },
+              "longest": {
+                ".validate": "newData.isString() && newData.val().length <= 11 && newData.val().matches(/^[A-Z]*$/)"
+              },
+              "board": {
+                ".validate": "newData.isString() && newData.val().length === 121 && newData.val().matches(/^[A-Z.]+$/)"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        },
+        "seats": {
+          "$i": {
+            ".write": "auth != null && root.child('rooms').child($code).child('host').exists() && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()))",
+            ".validate": "$i.matches(/^[0-7]$/) && newData.isString() && ($i === '0' || newData.parent().child('0').val() !== newData.val()) && ($i === '1' || newData.parent().child('1').val() !== newData.val()) && ($i === '2' || newData.parent().child('2').val() !== newData.val()) && ($i === '3' || newData.parent().child('3').val() !== newData.val()) && ($i === '4' || newData.parent().child('4').val() !== newData.val()) && ($i === '5' || newData.parent().child('5').val() !== newData.val()) && ($i === '6' || newData.parent().child('6').val() !== newData.val()) && ($i === '7' || newData.parent().child('7').val() !== newData.val())"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,8 +1,20 @@
 import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getDatabase, onValue, ref } from 'firebase/database';
 
-const app = initializeApp({ databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL });
+const app = initializeApp({
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+});
+const auth = getAuth(app);
 export const db = getDatabase(app);
+
+// Anonymous sign-in: players never see it. The browser keeps the same id across visits, and the database rules use it to know who's who.
+export async function signIn() {
+  await auth.authStateReady();
+  if (!auth.currentUser) await signInAnonymously(auth);
+  return auth.currentUser.uid;
+}
 
 // Server clock minus this phone's clock, so every phone counts down from the same moment.
 let offset = 0;

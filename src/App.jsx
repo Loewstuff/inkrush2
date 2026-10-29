@@ -2,8 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } f
 import { ROUND_SECONDS } from './rules.js';
 import { gameReducer, initGame, restoreGame, snapshot } from './game.js';
 import { beep, buzzer, unlockAudio } from './sound.js';
-import { serverNow } from './firebase.js';
-import { LEAD_MS, MAX_PLAYERS, MIN_PLAYERS, claimHost, cleanCode, createRoom, isAway, joinRoom, leaveRoom, nextHost, playerId, rematch, reportScore, startRound, trackPresence, watchRoom } from './room.js';
+import { serverNow, signIn } from './firebase.js';
+import { LEAD_MS, MAX_PLAYERS, MIN_PLAYERS, claimHost, cleanCode, createRoom, isAway, joinRoom, leaveRoom, nextHost, rematch, reportScore, startRound, trackPresence, watchRoom } from './room.js';
 import { decodeBoard, encodeBoard, rankPlayers } from './results.js';
 
 const RED_AT = 10;
@@ -511,7 +511,8 @@ function Play({ code, room, pid, away, dict, muted, onMute, onRematch, onLeave }
 }
 
 export default function App() {
-  const pid = useMemo(playerId, []);
+  const [pid, setPid] = useState(null);
+  const [authError, setAuthError] = useState(false);
   const [urlCode, setUrlCode] = useState(() => cleanCode(new URLSearchParams(window.location.search).get('room')));
   const [dict, setDict] = useState(null);
   const [code, setCode] = useState(null);
@@ -542,6 +543,10 @@ export default function App() {
   });
 
   useEffect(() => {
+    signIn().then(setPid, () => setAuthError(true));
+  }, []);
+
+  useEffect(() => {
     fetch('/enable.txt')
       .then((r) => r.text())
       .then((t) => setDict(new Set(t.split(/\s+/))))
@@ -550,7 +555,7 @@ export default function App() {
 
   // Opening the link again (or refreshing) drops you straight back into a room you're already in.
   useEffect(() => {
-    if (!urlCode) return undefined;
+    if (!urlCode || !pid) return undefined;
     return watchRoom(urlCode, (r) => {
       if (r?.players?.[pid]) setCode((c) => c || urlCode);
     });
@@ -605,7 +610,7 @@ export default function App() {
     // If you're host, the next player here takes over right away.
     if (inRoom) {
       const next = room.host === pid ? nextHost(room, pid) : undefined;
-      leaveRoom(code, pid, { next, freeSeat: !room.round?.players?.[pid] }).catch(() => {});
+      leaveRoom(code, pid, { next, freeSeat: !room.round?.players?.[pid], seats: room.seats }).catch(() => {});
     }
     goHome();
   };
@@ -624,6 +629,13 @@ export default function App() {
     </div>
   );
 
+  if (!pid) {
+    return shell(
+      <div className="screen">
+        <p className="big">{authError ? "Couldn't connect to the game server. Refresh to try again." : 'Connecting…'}</p>
+      </div>,
+    );
+  }
   if (!code) return shell(<Home urlCode={urlCode} busy={busy} error={error} onCreate={onCreate} onJoin={onJoin} />);
   if (room === undefined) return shell(<div className="screen"><p className="big">Connecting…</p></div>);
   if (room === null || !room.players?.[pid]) {

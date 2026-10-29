@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
+    "targaryen": "^3.1.0",
     "vite": "^8.3.5"
   },
   "private": true
