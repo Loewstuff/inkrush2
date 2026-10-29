@@ -1,0 +1,28 @@
+{
+  "name": "inkrush2",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Loewstuff/inkrush2.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Loewstuff/inkrush2/issues"
+  },
+  "homepage": "https://github.com/Loewstuff/inkrush2#readme",
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.5"
+  },
+  "private": true
+}

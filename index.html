@@ -2,94 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ink Rush 2 — Coming Soon</title>
-  <meta name="description" content="Ink Rush 2 — a real-time multiplayer word game. Coming soon.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%92%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#eceef1">
+  <title>Ink Rush 2</title>
+  <meta name="description" content="Ink Rush 2 — a real-time multiplayer word game.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232b2f37'/%3E%3Ctext x='50' y='72' font-size='64' font-family='monospace' font-weight='700' text-anchor='middle' fill='white'%3EI%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0e0b1a;
-      --ink: #f4efe6;
-      --muted: #a79fbd;
-      --accent: #7c5cff;
-      --accent-2: #ff4f8b;
-    }
-    * { box-sizing: border-box; margin: 0; }
-    html, body { height: 100%; }
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font-family: Inter, system-ui, sans-serif;
-      display: grid;
-      place-items: center;
-      padding: 24px 16px;
-      overflow: hidden;
-    }
-    .blot {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(70px);
-      opacity: .45;
-      z-index: 0;
-      animation: drift 14s ease-in-out infinite alternate;
-    }
-    .blot.a { width: 46vmax; height: 46vmax; background: var(--accent); top: -18vmax; left: -14vmax; }
-    .blot.b { width: 38vmax; height: 38vmax; background: var(--accent-2); bottom: -16vmax; right: -12vmax; animation-delay: -7s; }
-    @keyframes drift { to { transform: translate(6vmax, 4vmax) scale(1.1); } }
-    main { position: relative; z-index: 1; text-align: center; max-width: 640px; }
-    .tiles { display: flex; gap: 8px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
-    .tile {
-      width: 52px; height: 52px;
-      display: grid; place-items: center;
-      background: var(--ink); color: var(--bg);
-      font: 900 28px Fraunces, Georgia, serif;
-      border-radius: 10px;
-      box-shadow: 0 4px 0 #c9bfae;
-      animation: pop .6s cubic-bezier(.2,1.6,.4,1) both;
-    }
-    .tile:nth-child(odd) { transform: rotate(-3deg); }
-    .tile:nth-child(even) { transform: rotate(3deg); }
-    @keyframes pop { from { opacity: 0; transform: translateY(20px) scale(.6); } }
-    h1 {
-      font: 900 clamp(44px, 11vw, 96px)/1 Fraunces, Georgia, serif;
-      letter-spacing: -.02em;
-    }
-    h1 span {
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    p.tag { margin-top: 16px; font-size: clamp(16px, 4vw, 20px); color: var(--muted); }
-    .soon {
-      display: inline-block; margin-top: 36px;
-      padding: 10px 22px; border-radius: 999px;
-      border: 1px solid rgba(244,239,230,.25);
-      font-weight: 500; letter-spacing: .2em; text-transform: uppercase; font-size: 13px;
-    }
-    .soon::before {
-      content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 10px;
-      border-radius: 50%; background: var(--accent-2); vertical-align: middle;
-      animation: blink 1.4s ease-in-out infinite;
-    }
-    @keyframes blink { 50% { opacity: .2; } }
-    @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="blot a"></div>
-  <div class="blot b"></div>
-  <main>
-    <div class="tiles" aria-hidden="true">
-      <div class="tile" style="animation-delay:.05s">I</div>
-      <div class="tile" style="animation-delay:.12s">N</div>
-      <div class="tile" style="animation-delay:.19s">K</div>
-      <div class="tile" style="animation-delay:.26s">2</div>
-    </div>
-    <h1>Ink <span>Rush</span> 2</h1>
-    <p class="tag">A real-time multiplayer word game.</p>
-    <div class="soon">Coming soon</div>
-  </main>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
