@@ -194,8 +194,9 @@ export default function App() {
         <button type="button" className="keycap toggle" onPointerDown={press(toggleDir)}>
           {dir === 'down' ? '↓ Down' : '→ Across'}
         </button>
-        <button type="button" className="keycap clear" onPointerDown={press(clear)}>Clear</button>
-        <button type="button" className="keycap submit" onPointerDown={press(submit)}>
+        {/* Submit and Clear wait for finger-up so a brushing thumb can't fire them. */}
+        <button type="button" className="keycap clear" onClick={clear}>Clear</button>
+        <button type="button" className="keycap submit" onClick={submit}>
           Submit{typed && <span className="typed">{typed}</span>}
         </button>
       </div>
