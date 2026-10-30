@@ -7,11 +7,11 @@
   --tray: #dfe2e7;
   --cell: #e9ebef;
   --edge: rgba(0, 0, 0, 0.2);
-  --board: min(calc(100vw - 12px), calc(100dvh - 404px), 468px);
+  --board: min(calc(100vw - 12px), calc(100dvh - 322px - env(safe-area-inset-bottom)), 468px);
 }
 
 * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
+html, body { height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior: none; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -27,14 +27,15 @@ body {
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 
 .app {
-  height: 100dvh;
+  position: fixed; inset: 0;
   max-width: 480px;
   margin: 0 auto;
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  padding: 4px 6px calc(6px + env(safe-area-inset-bottom));
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* Keycap: rounded, 3px darker bottom edge, presses down on tap. */
@@ -53,63 +54,65 @@ button.keycap:active {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  height: 34px; flex: none;
 }
 .brand { display: flex; align-items: center; gap: 8px; }
 .logo {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   display: grid; place-items: center;
   background: var(--graphite); color: #fff;
   font: 700 16px 'IBM Plex Mono', monospace;
   border-radius: 8px;
 }
 .title { font-weight: 600; font-size: 15px; }
-.timer { font: 600 34px/1 'IBM Plex Mono', monospace; letter-spacing: -0.02em; }
+.timer { font: 600 30px/1 'IBM Plex Mono', monospace; letter-spacing: -0.02em; }
 .header-right { justify-self: end; display: flex; align-items: center; gap: 6px; }
 .mute {
-  width: 30px; height: 28px;
+  width: 30px; height: 26px;
   display: grid; place-items: center;
   background: #fff;
   color: var(--text-2);
 }
 .room {
   background: #fff;
-  padding: 5px 10px;
+  padding: 4px 10px;
   font: 600 13px 'IBM Plex Mono', monospace;
   letter-spacing: 0.1em;
   color: var(--text-2);
 }
 
-.countdown { width: 100%; height: 6px; border-radius: 3px; background: #d2d6dd; display: flex; overflow: hidden; }
+.countdown { width: 100%; height: 6px; flex: none; border-radius: 3px; background: #d2d6dd; display: flex; overflow: hidden; }
 /* Each half fills from its outer edge; they meet in the center at 0:00. */
 .countdown .half { flex: 1; background: var(--graphite); transform: scaleX(0); will-change: transform; }
 .countdown .left { transform-origin: left center; }
 .countdown .right { transform-origin: right center; }
 .countdown.urgent .half { background: #e5372b; }
 
-.ticker { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ticker { width: 100%; flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .card {
   background: #fff;
-  padding: 6px 6px 8px;
+  height: 40px; min-width: 0;
+  padding: 3px 6px 5px;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas: 'avatar score' 'name name';
   align-items: center;
-  gap: 2px 6px;
+  gap: 0 6px;
 }
 .card.me { box-shadow: inset 0 -3px 0 var(--orange); }
 .avatar {
   grid-area: avatar;
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 16px; height: 16px; border-radius: 50%;
   display: grid; place-items: center;
   background: #cfd3da; color: var(--text);
-  font: 600 11px 'IBM Plex Sans', sans-serif;
+  font: 600 10px 'IBM Plex Sans', sans-serif;
 }
 .card.me .avatar { background: var(--orange); }
 .card.away { opacity: 0.55; }
 .card.away .name { font-style: italic; }
 .away-tag { font-size: 11px; color: var(--text-2); }
-.name { grid-area: name; font-size: 11px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.score { grid-area: score; justify-self: end; font: 600 18px/1 'IBM Plex Mono', monospace; }
+.name { grid-area: name; font-size: 10px; line-height: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score { grid-area: score; justify-self: end; font: 600 16px/1 'IBM Plex Mono', monospace; }
 
 .tray {
   position: relative;
@@ -124,13 +127,14 @@ button.keycap:active {
 .grid {
   width: 100%; height: 100%;
   display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-template-rows: repeat(11, 1fr);
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-rows: repeat(11, minmax(0, 1fr));
   gap: 2px;
   font-size: 22px;
 }
 .cell {
   position: relative;
+  min-width: 0; min-height: 0; overflow: hidden;
   background: var(--cell);
   border-radius: 5px;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
@@ -179,10 +183,10 @@ button.keycap:active {
   padding: 14px 36px; font-weight: 600; font-size: 18px;
 }
 
-.status { height: 18px; font-size: 13px; color: var(--text-2); font-weight: 500; }
+.status { height: 14px; flex: none; line-height: 14px; font-size: 12px; color: var(--text-2); font-weight: 500; }
 .status.bad { color: var(--text); }
 
-.actions { width: 100%; display: grid; grid-template-columns: auto auto 1fr; gap: 6px; }
+.actions { width: 100%; flex: none; display: grid; grid-template-columns: auto auto 1fr; gap: 6px; }
 .actions .keycap { height: 44px; font-weight: 600; font-size: 15px; padding: 0 14px; background: #fff; }
 .actions .submit {
   background: var(--orange); color: var(--text);
@@ -191,10 +195,10 @@ button.keycap:active {
 }
 .typed { font: 700 14px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; }
 
-.keyboard { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.keyboard { width: 100%; flex: none; display: flex; flex-direction: column; gap: 5px; }
 .krow { display: flex; justify-content: center; gap: 5px; }
 .key {
-  flex: 1; max-width: 40px; height: 48px;
+  flex: 1; max-width: 40px; height: 44px;
   background: #fff;
   font: 600 18px 'IBM Plex Mono', monospace;
 }
@@ -205,7 +209,7 @@ button.keycap:active {
 }
 
 /* With 5-8 players the ticker takes a second row, so the board gives up that height. */
-.app.two-rows { --board: min(calc(100vw - 24px), calc(100dvh - 460px), 468px); }
+.app.two-rows { --board: min(calc(100vw - 12px), calc(100dvh - 366px - env(safe-area-inset-bottom)), 468px); }
 
 button:disabled { opacity: 0.45; cursor: default; }
 
@@ -257,12 +261,14 @@ button:disabled { opacity: 0.45; cursor: default; }
 .rank {
   width: 100%; height: 36px; padding: 0 10px 3px;
   background: #fff;
-  display: grid; grid-template-columns: 22px 1fr auto auto 36px; align-items: center; gap: 8px;
+  display: grid; grid-template-columns: 22px auto minmax(0, 1fr) auto 36px; align-items: center; gap: 8px;
   text-align: left;
 }
 .rank .name, .rank .score { grid-area: auto; }
 .rank .place { font: 700 16px 'IBM Plex Mono', monospace; color: var(--text); text-align: center; }
-.rank .name { font-size: 14px; color: var(--text); }
+.rank .name { font-size: 14px; line-height: 1.35; color: var(--text); min-width: 0; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank .slot { min-width: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.rank .winner { flex: 0 1 auto; min-width: 0; font-size: 9px; padding: 2px 4px 3px; }
 .rank .longest { font: 500 12px 'IBM Plex Mono', monospace; color: var(--text); letter-spacing: 0.05em; }
 .rank .score { justify-self: end; font: 600 18px/1 'IBM Plex Mono', monospace; }
 .rank.place-1 { background: #ffd23d; --edge: #c79a00; }

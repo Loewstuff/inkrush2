@@ -298,7 +298,7 @@ function Results({ room, pid, away, onRematch, onLeave }) {
             >
               <span className="place">{p.place}</span>
               <span className="name">{p.name}{p.away && <em className="away-tag"> away</em>}</span>
-              {p.place === 1 ? <Winner /> : <span />}
+              <span className="slot">{p.place === 1 && <Winner />}</span>
               <span className="longest">{p.longest}</span>
               <span className="score">{p.score}</span>
             </button>

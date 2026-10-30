@@ -5,3 +5,4 @@
 - [x] Stage 3: Polish — refresh/rejoin restore, away players, host handoff, rematch, tile pop animation.
 - [x] Stage 4: Launch prep — anonymous sign-in, Firebase security rules deployed (database.rules.json), tested on live.
 - [x] Polish pass 1: bigger board, green direction hint + arrow, medal results with WINNER badge.
+- [x] Fix pass 1: square cells, no page scroll, 378px board on iPhone, start cursor under seed, centered WINNER badge.

@@ -1,7 +1,5 @@
 import { SIZE, boardWithSeed, checkMove } from './rules.js';
 
-const START_CURSOR = { r: 4, c: 5 };
-
 // First cell at or after (r, c) in `dir` that doesn't hold a locked tile, or null if off the board.
 function nextOpen(board, r, c, dir) {
   const dr = dir === 'down' ? 1 : 0;
@@ -13,12 +11,20 @@ function nextOpen(board, r, c, dir) {
   return r < SIZE && c < SIZE ? { r, c } : null;
 }
 
+// Cell below the first seed letter, or the next empty one further down.
+export function startCursor(board, seed) {
+  const c = Math.floor((SIZE - seed.length) / 2);
+  const r = Math.floor(SIZE / 2) + 1;
+  return nextOpen(board, r, c, 'down') || { r, c };
+}
+
 export function initGame(seed = 'PLANET') {
+  const board = boardWithSeed(seed);
   return {
     active: false,
-    board: boardWithSeed(seed),
+    board,
     pending: [],
-    cursor: START_CURSOR,
+    cursor: startCursor(board, seed),
     dir: 'down',
     score: 0,
     longest: '',

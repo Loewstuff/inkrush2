@@ -40,3 +40,10 @@ test('a damaged save is ignored', () => {
   assert.equal(restoreGame('PLANET', { board: 'nope' }), null);
   assert.equal(restoreGame('PLANET', null), null);
 });
+
+test('round starts with the cursor under the first seed letter, going down', async () => {
+  const { initGame } = await import('./game.js');
+  const g = initGame('FLOWER');
+  assert.deepEqual(g.cursor, { r: 6, c: 2 });
+  assert.equal(g.dir, 'down');
+});
