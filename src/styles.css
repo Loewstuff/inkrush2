@@ -7,7 +7,7 @@
   --tray: #dfe2e7;
   --cell: #e9ebef;
   --edge: rgba(0, 0, 0, 0.2);
-  --board: min(calc(100vw - 24px), calc(100dvh - 392px), 480px);
+  --board: min(calc(100vw - 12px), calc(100dvh - 404px), 468px);
 }
 
 * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
@@ -30,7 +30,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -116,9 +116,9 @@ button.keycap:active {
   width: var(--board);
   height: var(--board);
   flex: none;
-  padding: 6px;
+  padding: 4px;
   background: var(--tray);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 .grid {
@@ -127,7 +127,7 @@ button.keycap:active {
   grid-template-columns: repeat(11, 1fr);
   grid-template-rows: repeat(11, 1fr);
   gap: 2px;
-  font-size: calc(var(--board) / 11 * 0.5);
+  font-size: 22px;
 }
 .cell {
   position: relative;
@@ -138,6 +138,12 @@ button.keycap:active {
   place-items: stretch;
 }
 .cell.cursor { outline: 2px solid var(--orange); outline-offset: -2px; z-index: 1; }
+/* Direction hint: green tint on empty cells ahead of the cursor, a ring on tiles already there. */
+.cell.path { background-image: linear-gradient(rgba(30, 170, 100, 0.25), rgba(30, 170, 100, 0.25)); }
+.cell.path-tile { background-image: none; }
+.cell.path-tile .tile { box-shadow: inset 0 -3px 0 var(--edge), 0 0 0 2px rgba(30, 170, 100, 0.6); }
+.cell.cursor:not(:has(.tile)) { background: #fff; box-shadow: inset 0 -3px 0 var(--edge); }
+.arrow { place-self: center; pointer-events: none; }
 
 .tile {
   display: grid; place-items: center;
@@ -188,7 +194,7 @@ button.keycap:active {
 .keyboard { width: 100%; display: flex; flex-direction: column; gap: 6px; }
 .krow { display: flex; justify-content: center; gap: 5px; }
 .key {
-  flex: 1; max-width: 40px; height: 44px;
+  flex: 1; max-width: 40px; height: 48px;
   background: #fff;
   font: 600 18px 'IBM Plex Mono', monospace;
 }
@@ -199,7 +205,7 @@ button.keycap:active {
 }
 
 /* With 5-8 players the ticker takes a second row, so the board gives up that height. */
-.app.two-rows { --board: min(calc(100vw - 24px), calc(100dvh - 448px), 480px); }
+.app.two-rows { --board: min(calc(100vw - 24px), calc(100dvh - 460px), 468px); }
 
 button:disabled { opacity: 0.45; cursor: default; }
 
@@ -251,18 +257,53 @@ button:disabled { opacity: 0.45; cursor: default; }
 .rank {
   width: 100%; height: 36px; padding: 0 10px 3px;
   background: #fff;
-  display: grid; grid-template-columns: 18px 20px 1fr auto 36px; align-items: center; gap: 8px;
+  display: grid; grid-template-columns: 22px 1fr auto auto 36px; align-items: center; gap: 8px;
   text-align: left;
 }
-.rank .avatar, .rank .name, .rank .score { grid-area: auto; }
-.rank .place { font: 600 14px 'IBM Plex Mono', monospace; color: var(--text-2); text-align: center; }
+.rank .name, .rank .score { grid-area: auto; }
+.rank .place { font: 700 16px 'IBM Plex Mono', monospace; color: var(--text); text-align: center; }
 .rank .name { font-size: 14px; color: var(--text); }
-.rank .longest { font: 500 12px 'IBM Plex Mono', monospace; color: var(--text-2); letter-spacing: 0.05em; }
+.rank .longest { font: 500 12px 'IBM Plex Mono', monospace; color: var(--text); letter-spacing: 0.05em; }
 .rank .score { justify-self: end; font: 600 18px/1 'IBM Plex Mono', monospace; }
-.rank.win { background: var(--orange); }
-.rank.win .place, .rank.win .longest { color: var(--text); }
-.rank.me .avatar { background: var(--orange); }
-.rank.win.me .avatar { background: #fff; }
+.rank.place-1 { background: #ffd23d; --edge: #c79a00; }
+.rank.place-2 { background: #d4d9e1; --edge: #9aa1ad; }
+.rank.place-3 { background: #d9955f; --edge: #9c5a2b; }
+.rank.place-1, .rank.place-2, .rank.place-3 { box-shadow: inset 0 -3px 0 var(--edge); }
+.rank.place-1 .name, .rank.place-2 .name, .rank.place-3 .name { color: var(--text); }
+.winner {
+  position: relative;
+  padding: 2px 6px 4px;
+  background: var(--graphite);
+  border-radius: 6px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.45);
+  font: 700 10px/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: 0.1em;
+}
+.glitter {
+  background: linear-gradient(100deg, #ffd23d 0%, #ffd23d 35%, #fff 50%, #ffd23d 65%, #ffd23d 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: shimmer 2.5s linear infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.spark {
+  position: absolute; width: 7px; height: 7px;
+  background: #fff3b0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0; transform: scale(0);
+  animation: twinkle 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.spark.s1 { top: -4px; left: -3px; animation-delay: 0s; }
+.spark.s2 { top: -5px; right: 6px; animation-delay: 0.45s; }
+.spark.s3 { bottom: -4px; right: -3px; animation-delay: 0.9s; }
+.spark.s4 { bottom: -5px; left: 10px; animation-delay: 1.35s; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(0); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .glitter { animation: none; background-size: 100% 100%; background-image: linear-gradient(100deg, #ffd23d, #fff1a8 50%, #ffd23d); }
+  .spark { animation: none; opacity: 0; }
+}
 .rank.viewing { outline: 2px solid var(--graphite); outline-offset: -2px; }
 .strip {
   width: 100%;
@@ -277,7 +318,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .slide-name { font-size: 13px; font-weight: 600; color: var(--text-2); }
 .tray.mini { --board: var(--mini); padding: 4px; }
-.tray.mini .grid { gap: 1px; }
+.tray.mini .grid { gap: 1px; font-size: calc(var(--board) / 11 * 0.5); }
 .tray.mini .tile { box-shadow: inset 0 -2px 0 var(--edge); }
 .tray.mini .tile.seed { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.45); }
 .dots { display: flex; gap: 6px; }

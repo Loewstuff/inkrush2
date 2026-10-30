@@ -25,17 +25,22 @@ Ranked scoreboard, winner highlighted. Tie-breaker: longest single word. Swipe t
 
 ## Look
 LOOK — "Keycap" (clean, tactile, detail-oriented):
-- Background #eceef1. Text #1b1e24, secondary text #4d535e. Accent orange #ff7a3d (always dark text on orange).
+- Page side padding 6px. Background #eceef1. Text #1b1e24, secondary text #4d535e. Accent orange #ff7a3d (always dark text on orange).
 - Fonts: IBM Plex Sans for UI, IBM Plex Mono for tiles, timer and scores (Google Fonts).
 - Keycap effect everywhere: rounded corners plus a 3px darker bottom edge (inset box-shadow) so things look like physical keys. On tap, keys press down (edge shrinks to 1px).
 - Header: small dark keycap logo with "I", "Ink Rush" title, big mono timer (0:47) in the center, room code in a small white keycap chip on the right.
 - Under the header: an 18-segment countdown bar (dark segments drain to light gray as time runs out).
 - Score ticker: player cards in a 4-column grid (2 rows if more than 4 players). Each card is a white keycap with an initial avatar circle, name, and mono score. Your own card has an orange bottom edge and orange avatar.
-- Board: 11x11 inside a recessed tray (#dfe2e7, radius 16, inner shadow). Empty cells are light (#e9ebef) and slightly sunken. Seed word tiles are graphite (#2b2f37) keycaps with white letters. Your placed tiles are orange keycaps. Pending (typed, not yet submitted) tiles are white keycaps with a 2px orange ring. The cursor cell shows an orange outline.
+- Board: 11x11 inside a recessed tray (#dfe2e7, 4px padding, radius 14, 2px gap, inner shadow). Tiles are sized from the screen width so the board fills it: tile = (width - 12 - 8 - 20) / 11 (about 32px on a 390px phone). Tile letters are IBM Plex Mono bold 22px. Empty cells are light (#e9ebef) and slightly sunken. Seed word tiles are graphite (#2b2f37) keycaps with white letters. Your placed tiles are orange keycaps. Pending (typed, not yet submitted) tiles are white keycaps with a 2px orange ring. The cursor cell is a white keycap with a 2px orange ring and a bold green (#159a5a) arrow (right = across, down = down) that never blocks taps. Direction hint: empty cells from the cursor forward to the board edge are tinted rgba(30,170,100,0.25); existing tiles in that path get a 2px rgba(30,170,100,0.6) ring. It updates instantly on cursor move, Down/Across tap and same-cell toggle.
 - Action row: "↓ Down / → Across" toggle, "Clear", and a wide orange "Submit" button that shows the letters being typed.
-- Custom on-screen keyboard: white keycaps, 44px tall, QWERTY with a wider gray backspace key.
+- Custom on-screen keyboard: white keycaps, 48px tall, QWERTY with a wider gray backspace key.
 - Valid word: tiles pop slightly as they lock in. Invalid word: tiles shake and return.
 - Board, timer, ticker and keyboard all fit an iPhone screen without scrolling. Big tap targets.
+
+### Results screen look
+- Ranking: score, then longest single word. Players still tied share a place (standard competition ranking: 1, 1, 3).
+- Rows are keycaps with a 3px darker bottom edge and dark text: 1st gold #ffd23d, 2nd silver #d4d9e1, 3rd bronze #d9955f, 4th and below neutral white. No orange, no "YOU" marker.
+- Each row: bold mono place number, nickname as entered, then (1st place only, ties included) a WINNER badge: dark graphite keycap, gold-to-white shimmering letters (~2.5s loop) and four twinkling sparkles. Reduced motion shows a static gold gradient.
 
 ## Tech
 Vite + React, Firebase Realtime Database (https://inkrush2-default-rtdb.firebaseio.com/), Vercel hosting. Firebase config in .env.local and Vercel environment variables, never committed. Scores are reported by each phone (acceptable for friends-only play).

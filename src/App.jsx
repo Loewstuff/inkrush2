@@ -4,7 +4,7 @@ import { gameReducer, initGame, restoreGame, snapshot } from './game.js';
 import { beep, buzzer, unlockAudio } from './sound.js';
 import { serverNow, signIn } from './firebase.js';
 import { LEAD_MS, MAX_PLAYERS, MIN_PLAYERS, claimHost, cleanCode, createRoom, isAway, joinRoom, leaveRoom, nextHost, rematch, reportScore, startRound, trackPresence, watchRoom } from './room.js';
-import { decodeBoard, encodeBoard, rankPlayers } from './results.js';
+import { decodeBoard, encodeBoard, rankPlayers, withPlaces } from './results.js';
 
 const RED_AT = 10;
 const BEEPS_FROM = 5;
@@ -62,18 +62,35 @@ function joinOrder(room, ids) {
   return [...ids].sort((a, b) => joined(a) - joined(b));
 }
 
-const Cell = memo(function Cell({ r, c, ch, kind, cursor, shake, pop, onTap }) {
+// Green arrow on the cursor cell; green (not black) so it can't be mistaken for a letter.
+function Arrow({ dir }) {
+  return (
+    <svg className="arrow" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        d={dir === 'down' ? 'M12 4v15M6 13l6 6 6-6' : 'M4 12h15M13 6l6 6-6 6'}
+        fill="none"
+        stroke="#159a5a"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const Cell = memo(function Cell({ r, c, ch, kind, cursor, arrow, path, shake, pop, onTap }) {
   let tile = null;
   if (kind === 'pending') tile = <span className={`tile pending${shake ? ' shake' : ''}`}>{ch}</span>;
   else if (kind) tile = <span className={`tile ${kind}${pop ? ' pop' : ''}`}>{ch}</span>;
   return (
     <button
       type="button"
-      className={`cell${cursor ? ' cursor' : ''}`}
+      className={`cell${cursor ? ' cursor' : ''}${path ? ' path' : ''}${path && kind ? ' path-tile' : ''}`}
       onPointerDown={press(() => onTap(r, c))}
       aria-label={`Row ${r + 1}, column ${c + 1}`}
     >
       {tile}
+      {arrow && !kind && <Arrow dir={arrow} />}
     </button>
   );
 });
@@ -238,21 +255,33 @@ function MiniBoard({ text, seed }) {
   );
 }
 
+function Winner() {
+  return (
+    <span className="winner keycap">
+      <span className="glitter">WINNER</span>
+      <i className="spark s1" />
+      <i className="spark s2" />
+      <i className="spark s3" />
+      <i className="spark s4" />
+    </span>
+  );
+}
+
 function Results({ room, pid, away, onRematch, onLeave }) {
   const { round } = room;
   const scores = room.scores?.[round.n] || {};
-  const ranked = rankPlayers(
-    joinOrder(room, Object.keys(round.players)).map((id) => ({
-      id,
-      name: room.players?.[id]?.name || scores[id]?.name || 'Player',
-      score: scores[id]?.score || 0,
-      longest: scores[id]?.longest || '',
-      board: scores[id]?.board,
-      away: away.has(id),
-    })),
+  const ranked = withPlaces(
+    rankPlayers(
+      joinOrder(room, Object.keys(round.players)).map((id) => ({
+        id,
+        name: room.players?.[id]?.name || scores[id]?.name || 'Player',
+        score: scores[id]?.score || 0,
+        longest: scores[id]?.longest || '',
+        board: scores[id]?.board,
+        away: away.has(id),
+      })),
+    ),
   );
-  const top = ranked[0];
-  const wins = (p) => p.score === top.score && p.longest.length === top.longest.length;
   const strip = useRef(null);
   const [slide, setSlide] = useState(0);
   const show = (i) => strip.current?.scrollTo({ left: i * strip.current.clientWidth, behavior: 'smooth' });
@@ -264,12 +293,12 @@ function Results({ room, pid, away, onRematch, onLeave }) {
           <li key={p.id}>
             <button
               type="button"
-              className={`rank keycap${wins(p) ? ' win' : ''}${p.id === pid ? ' me' : ''}${slide === i ? ' viewing' : ''}`}
+              className={`rank keycap${p.place <= 3 ? ` place-${p.place}` : ''}${slide === i ? ' viewing' : ''}`}
               onClick={() => show(i)}
             >
-              <span className="place">{wins(p) ? '★' : i + 1}</span>
-              <span className="avatar">{initial(p.name)}</span>
+              <span className="place">{p.place}</span>
               <span className="name">{p.name}{p.away && <em className="away-tag"> away</em>}</span>
+              {p.place === 1 ? <Winner /> : <span />}
               <span className="longest">{p.longest}</span>
               <span className="score">{p.score}</span>
             </button>
@@ -452,6 +481,8 @@ function Play({ code, room, pid, away, dict, muted, onMute, onRematch, onLeave }
                 row.map((cell, c) => {
                   const key = `${r},${c}`;
                   const pend = pendingAt.get(key);
+                  const isCursor = clock === 'playing' && cursor.r === r && cursor.c === c;
+                  const ahead = dir === 'down' ? c === cursor.c && r > cursor.r : r === cursor.r && c > cursor.c;
                   return (
                     <Cell
                       key={key}
@@ -459,7 +490,9 @@ function Play({ code, room, pid, away, dict, muted, onMute, onRematch, onLeave }
                       c={c}
                       ch={pend || cell?.ch}
                       kind={pend ? 'pending' : cell?.kind}
-                      cursor={clock === 'playing' && cursor.r === r && cursor.c === c}
+                      cursor={isCursor}
+                      arrow={isCursor ? dir : null}
+                      path={clock === 'playing' && ahead}
                       shake={!!pend && shaking}
                       pop={popped.includes(key)}
                       onTap={tapCell}

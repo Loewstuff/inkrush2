@@ -24,3 +24,14 @@ export function rankPlayers(entries) {
       b.score - a.score || (b.longest || '').length - (a.longest || '').length || a.name.localeCompare(b.name),
   );
 }
+
+// Standard competition ranking over an already-ranked list: players level on tiles and
+// longest word share a place, and the next place skips ahead (1, 1, 3).
+export function withPlaces(ranked) {
+  const same = (a, b) => a.score === b.score && (a.longest || '').length === (b.longest || '').length;
+  return ranked.map((p, i) => {
+    let first = i;
+    while (first > 0 && same(ranked[first - 1], p)) first--;
+    return { ...p, place: first + 1 };
+  });
+}
